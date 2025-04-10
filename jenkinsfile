@@ -1,62 +1,69 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18'
-            args '-u root'
-        }
-    }
-
+    agent none // Set to none since we'll define agents per stage
     
     stages {
-        stage('Install Client Dependencies') {
-            steps {
-                dir('client') {
-                    sh 'npm install'
+        // Node.js stages run in node:18 container
+        stage('Install Dependencies') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
                 }
             }
-        }
-
-        stage('Install Server Dependencies') {
-            steps {
-                dir('server') {
-                    sh 'npm install'
-                }
-            }
-        }
-
-        stage('Client Tests') {
-            steps {
-                dir('client') {
-                    script {
-                        sh 'npm test || echo "Aucun test client configuré"'
-                    }
-                }
-            }
-        }
-
-        stage('Server Tests') {
-            steps {
-                dir('server') {
-                    script {
-                        sh 'npm test || echo "Aucun test serveur configuré"'
-                    }
-                }
-            }
-        }
-
-    /*stage('SonarQube Analysis') {
-      steps{
-      script {  
-                    def scannerHome = tool 'scanner'
-                    withSonarQubeEnv {
-                    sh "${scannerHome}/bin/sonar-scanner"
+            stages {
+                stage('Install Client Dependencies') {
+                    steps {
+                        dir('client') {
+                            sh 'npm install'
                         }
-                } 
-              }  
-            }*/
+                    }
+                }
+                stage('Install Server Dependencies') {
+                    steps {
+                        dir('server') {
+                            sh 'npm install'
+                        }
+                    }
+                }
+            }
+        }
 
+        stage('Run Tests') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
+            stages {
+                stage('Client Tests') {
+                    steps {
+                        dir('client') {
+                            script {
+                                sh 'npm test || echo "Aucun test client configuré"'
+                            }
+                        }
+                    }
+                }
+                stage('Server Tests') {
+                    steps {
+                        dir('server') {
+                            script {
+                                sh 'npm test || echo "Aucun test serveur configuré"'
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Build Client') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root'
+                }
+            }
             steps {
                 dir('client') {
                     sh 'npm run build'
@@ -64,15 +71,22 @@ pipeline {
             }
         }
 
- stage('Building images (node and mongo)') {
+        stage('Build Docker Images') {
             agent {
                 docker {
                     image 'docker:latest'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:$WORKSPACE -w $WORKSPACE'
                 }
             }
             steps {
-                sh 'docker-compose build'
+                script {
+                    // Use Docker Compose V2 syntax
+                    sh 'docker compose build'
+                    
+                    // Alternative if you need V1 syntax:
+                    // sh 'apk add docker-compose'
+                    // sh 'docker-compose build'
+                }
             }
         }
     }
@@ -80,6 +94,10 @@ pipeline {
     post {
         always {
             echo 'Pipeline terminée - Nettoyage'
+            script {
+                // Clean up any dangling Docker resources
+                sh 'docker system prune -f || true'
+            }
         }
         success {
             echo '✅ SUCCÈS : Le déploiement a réussi!'
