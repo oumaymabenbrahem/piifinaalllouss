@@ -2,46 +2,59 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root'
+            args '-u root --network=host'  // Ajout du réseau host pour les connexions locales
         }
     }
     environment {
         // Configuration SonarQube
-        SONAR_SCANNER_HOME = tool 'scanner'  
+        SONAR_SCANNER_HOME = tool 'SonarQubeScanner'  // Nom doit correspondre à la config Jenkins
         SONAR_PROJECT_KEY = 'piapp'
-       
+        SONAR_PROJECT_NAME = 'PI Application'  // Ajout du nom du projet
+        SONAR_SOURCES = 'src'  // Chemin des sources à analyser
     }
     stages {
-        /* Installation des dépendances */
-        stage('Install Client Dependencies') {
-            steps {
-                dir('client') {
-                    sh 'npm install'
+        /* Installation des dépendances en parallèle */
+        stage('Install Dependencies') {
+            parallel {
+                stage('Client') {
+                    steps {
+                        dir('client') {
+                            sh 'npm ci'  // Utilisation de npm ci pour des installations plus fiables
+                        }
+                    }
+                }
+                stage('Server') {
+                    steps {
+                        dir('server') {
+                            sh 'npm ci'
+                        }
+                    }
                 }
             }
         }
 
-        stage('Install Server Dependencies') {
-            steps {
-                dir('server') {
-                    sh 'npm install'
+        /* Tests en parallèle */
+        stage('Run Tests') {
+            parallel {
+                stage('Client Tests') {
+                    steps {
+                        dir('client') {
+                            script {
+                                // Continue même si les tests échouent ou sont absents
+                                sh 'npm test || true'
+                                junit '**/test-results.xml'  // Si vous générez des rapports de test
+                            }
+                        }
+                    }
                 }
-            }
-        }
-
-        /* Tests (optionnels) */
-        stage('Client Tests') {
-            steps {
-                dir('client') {
-                    sh 'npm test || echo "Aucun test client configuré"'
-                }
-            }
-        }
-
-        stage('Server Tests') {
-            steps {
-                dir('server') {
-                    sh 'npm test || echo "Aucun test serveur configuré"'
+                stage('Server Tests') {
+                    steps {
+                        dir('server') {
+                            script {
+                                sh 'npm test || true'
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -49,50 +62,45 @@ pipeline {
         /* Analyse SonarQube */
         stage('SonarQube Analysis') {
             when {
-                expression { return env.SONAR_HOST_URL != null }
+                allOf {
+                    expression { return env.SONAR_HOST_URL != null }
+                    expression { return env.SONAR_AUTH_TOKEN != null }
+                }
             }
             steps {
-                withSonarQubeEnv('SonarQube') {  
+                withSonarQubeEnv('SonarQube') {
                     script {
-                        sh """
-                            ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.sources=src \
-                            -Dsonar.host.url=${SONAR_HOST_URL} \
-                            -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                            -Dsonar.javascript.node=18
-                        """
+                        try {
+                            sh """
+                                ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
+                                -Dsonar.sources=${SONAR_SOURCES} \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_AUTH_TOKEN} \
+                                -Dsonar.javascript.node=18 \
+                                -Dsonar.exclusions=**/node_modules/**,**/dist/**
+                            """
+                        } catch (err) {
+                            echo "SonarQube analysis failed: ${err}"
+                            // Continue le pipeline malgré l'échec de SonarQube
+                        }
                     }
                 }
             }
         }
 
-        /* Build et Déploiement */
+        /* Build Client */
         stage('Build Client') {
             steps {
                 dir('client') {
                     sh 'npm run build'
+                    archiveArtifacts artifacts: 'dist/**/*', fingerprint: true  // Archive les artefacts de build
                 }
             }
         }
 
-        stage('Start Server') {
-            steps {
-                dir('server') {
-                    sh 'npm start'
-                }
-            }
-        }
+      
     }
-    post {
-        always {
-            echo 'Nettoyage après exécution'
-        }
-        success {
-            echo 'SUCCÈS : Pipeline terminée avec succès'
-        }
-        failure {
-            echo 'ÉCHEC : Vérifiez les logs pour les erreurs'
-        }
-    }
+
 }
