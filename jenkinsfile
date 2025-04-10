@@ -75,17 +75,18 @@ pipeline {
             agent {
                 docker {
                     image 'docker:latest'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:$WORKSPACE -w $WORKSPACE'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -w /workspace'
+                    // On retire le montage en double de $WORKSPACE
+                    // Jenkins monte automatiquement le workspace dans /workspace
                 }
             }
             steps {
                 script {
-                    // Use Docker Compose V2 syntax
-                    sh 'docker compose build'
-                    
-                    // Alternative if you need V1 syntax:
-                    // sh 'apk add docker-compose'
-                    // sh 'docker-compose build'
+                    // Solution plus robuste avec docker-compose v2
+                    sh '''
+                        docker compose version
+                        docker compose build
+                    '''
                 }
             }
         }
@@ -93,10 +94,12 @@ pipeline {
 
     post {
         always {
-            echo 'Pipeline terminée - Nettoyage'
-            script {
-                // Clean up any dangling Docker resources
-                sh 'docker system prune -f || true'
+            node { // Ajout d'un contexte node pour les post-actions
+                echo 'Pipeline terminée - Nettoyage'
+                script {
+                    // Clean up any dangling Docker resources
+                    sh 'docker system prune -f || true'
+                }
             }
         }
         success {
