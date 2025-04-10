@@ -1,23 +1,62 @@
 pipeline {
     agent {
         docker {
-            image 'node:18'
+            image 'node:18'  // Utilise une image Docker avec Node.js
+            args '-u root'    // Évite les problèmes de permissions
         }
     }
     stages {
-        stage('Install dependencies') {
+        // Étape 1: Installer les dépendances du client
+        stage('Install Client Dependencies') {
             steps {
-                sh 'npm install'
+                dir('client') {  // Se déplace dans le dossier client
+                    sh 'npm install'
+                }
             }
         }
-        stage('Unit Test') {
+
+        // Étape 2: Installer les dépendances du serveur
+        stage('Install Server Dependencies') {
             steps {
-                sh 'npm test'
+                dir('server') {  // Se déplace dans le dossier serveur
+                    sh 'npm install'
+                }
             }
         }
-        stage('Build application') {
+
+        // Étape 3: Lancer les tests du client (si nécessaire)
+        stage('Client Tests') {
             steps {
-                sh 'npm run build-dev'
+                dir('client') {
+                    sh 'npm test'  // Exécute les tests du client
+                }
+            }
+        }
+
+        // Étape 4: Lancer les tests du serveur (si nécessaire)
+        stage('Server Tests') {
+            steps {
+                dir('server') {
+                    sh 'npm test'  // Exécute les tests du serveur
+                }
+            }
+        }
+
+        // Étape 5: Build du client (si nécessaire)
+        stage('Build Client') {
+            steps {
+                dir('client') {
+                    sh 'npm run build'  // Exécute la build du client (ex: React)
+                }
+            }
+        }
+
+        // Étape 6: Démarrer le serveur (optionnel)
+        stage('Start Server') {
+            steps {
+                dir('server') {
+                    sh 'npm start'  // Démarre le serveur (ex: Node.js/Express)
+                }
             }
         }
     }
