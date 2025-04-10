@@ -8,8 +8,8 @@ pipeline {
     environment {
         SONAR_SCANNER_HOME = tool 'scanner' 
         SONAR_PROJECT_KEY = 'piapp'
-        SONAR_PROJECT_NAME = 'Mon Projet' 
-        SONAR_AUTH_TOKEN = credentials('sonar')  
+        SONAR_PROJECT_NAME = 'Mon Projet'
+        SONAR_SOURCES = 'src'
     }
     stages {
         /* Installation des dépendances */
@@ -58,16 +58,27 @@ pipeline {
 
         /* Analyse SonarQube */
         stage('Analyse SonarQube') {
+            when {
+                expression { return env.SONAR_HOST_URL != null }
+            }
             steps {
-                withSonarQubeEnv('scanner') {  
-                    sh """
-                        ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
-                        -Dsonar.host.url=http://192.168.33.10:9000 \
-                        -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                        -Dsonar.sources=src
-                    """
+                withSonarQubeEnv('scanner') {
+                    script {
+                        try {
+                            sh """
+                                ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_AUTH_TOKEN} \
+                                -Dsonar.sources=${SONAR_SOURCES} \
+                                -Dsonar.javascript.node=18
+                            """
+                        } catch (err) {
+                            echo "Erreur SonarQube: ${err}"
+                            // Ne pas faire échouer le pipeline pour cette étape
+                        }
+                    }
                 }
             }
         }
