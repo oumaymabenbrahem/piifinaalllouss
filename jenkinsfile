@@ -48,6 +48,17 @@ pipeline {
             }
         }
 
+stage('SonarQube Analysis') {
+      steps{
+      script {  
+                    def scannerHome = tool 'scanner'
+                    withSonarQubeEnv {
+                    sh "${scannerHome}/bin/sonar-scanner"
+                        }
+                } 
+              }  
+            }
+
         /* Étape 5: Build du client */
         stage('Build Client') {
             steps {
