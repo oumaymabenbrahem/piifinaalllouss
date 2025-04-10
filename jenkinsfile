@@ -2,8 +2,13 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root'  // Évite les problèmes de permissions
+            args '-u root'  
         }
+ environment {
+        SONARQUBE_CREDENTIALS_ID = "sonar"
+        SONARQUBE_URL = "http://192.168.33.10:9000"
+      
+    }
     }
     stages {
         /* Étape 1: Installation des dépendances du client */
@@ -58,6 +63,23 @@ stage('SonarQube Analysis') {
                 } 
               }  
             }
+
+
+stage("SonarQube Analysis") {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
+                        sh """
+                        mvn sonar:sonar \
+                            -Dsonar.projectKey=devops \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.login=$SONAR_TOKEN \
+                            --settings settings.xml
+                        """
+                    }
+                }
+            }
+        }
 
         /* Étape 5: Build du client */
         stage('Build Client') {
