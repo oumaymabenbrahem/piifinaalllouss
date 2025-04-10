@@ -6,11 +6,11 @@ pipeline {
         }
     }
     environment {
-        // Configuration SonarQube
-        SONAR_SCANNER_HOME = tool 'scanner'  
+        
+        SONAR_SCANNER_HOME = tool 'scanner' 
         SONAR_PROJECT_KEY = 'piapp'
-        SONAR_PROJECT_NAME = 'PI Application'
-        SONAR_SOURCES = 'src'
+        SONAR_PROJECT_NAME = 'Mon Projet' 
+        SONAR_AUTH_TOKEN = credentials('sonar')  
     }
     stages {
         /* Installation des dépendances */
@@ -57,33 +57,19 @@ pipeline {
             }
         }
 
-        /* Analyse SonarQube (optionnelle si configurée) */
-        stage('SonarQube Analysis') {
-            when {
-                allOf {
-                    environment name: 'SONAR_HOST_URL', value: ''
-                    environment name: 'SONAR_AUTH_TOKEN', value: ''
-                }
-            }
+        stages {
+        stage('Analyse SonarQube') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    script {
-                        try {
-                            sh """
-                                ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
-                                -Dsonar.sources=${SONAR_SOURCES} \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                                -Dsonar.javascript.node=18 \
-                                -Dsonar.exclusions=**/node_modules/**,**/dist/**
-                            """
-                        } catch (err) {
-                            echo "Erreur SonarQube: ${err}"
-                            // Ne pas faire échouer le pipeline pour SonarQube
-                        }
-                    }
+                // 4. Nom doit matcher "Nom" dans Configure System
+                withSonarQubeEnv('scanner') {  
+                    sh """
+                        ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
+                        -Dsonar.host.url=http://192.168.33.10:9000 \
+                        -Dsonar.login=${SONAR_AUTH_TOKEN} \
+                        -Dsonar.sources=src
+                    """
                 }
             }
         }
