@@ -57,14 +57,7 @@ pipeline {
             }
         }
 
-        /* Étape 6: Déploiement du serveur */
-        stage('Start Server') {
-            steps {
-                dir('server') {
-                    sh 'npm start'  // Assurez-vous que ce script existe dans package.json
-                }
-            }
-        }
+      
     }
     post {
         always {
