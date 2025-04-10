@@ -6,11 +6,7 @@ pipeline {
         }
     }
 
-    environment {
-        SONARQUBE_CREDENTIALS_ID = "sonar"
-        SONARQUBE_URL = "http://192.168.33.10:9000"
-    }
-
+    
     stages {
         stage('Install Client Dependencies') {
             steps {
@@ -48,23 +44,16 @@ pipeline {
             }
         }
 
-      stage('SonarQube Analysis') {
-    steps {
-        script {
-            def scannerHome = tool 'scanner'
-
-            withSonarQubeEnv('sonar') { 
-                sh """
-                    ${scannerHome}/bin/sonar-scanner \
-                      -Dsonar.projectKey=piapp \
-                      -Dsonar.sources=. \
-                      -Dsonar.host.url=$SONARQUBE_URL \
-                      -Dsonar.login=$SONAR_AUTH_TOKEN
-                """
+    stage('SonarQube Analysis') {
+      steps{
+      script {  
+                    def scannerHome = tool 'scanner'
+                    withSonarQubeEnv {
+                    sh "${scannerHome}/bin/sonar-scanner"
+                        }
+                } 
+              }  
             }
-        }
-    }
-}
 
 
         stage('Build Client') {
