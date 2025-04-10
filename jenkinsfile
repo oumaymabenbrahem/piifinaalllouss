@@ -2,106 +2,83 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root --network=host'
+            args '-u root'  // Évite les problèmes de permissions
         }
-    }
-    environment {
-        SONAR_SCANNER_HOME = tool 'scanner' 
-        SONAR_PROJECT_KEY = 'piapp'
-        SONAR_PROJECT_NAME = 'Mon Projet'
-        SONAR_SOURCES = 'src'
     }
     stages {
-        /* Installation des dépendances */
-        stage('Install Dependencies') {
-            parallel {
-                stage('Client') {
-                    steps {
-                        dir('client') {
-                            sh 'npm ci'
-                        }
-                    }
-                }
-                stage('Server') {
-                    steps {
-                        dir('server') {
-                            sh 'npm ci'
-                        }
-                    }
-                }
-            }
-        }
-
-        /* Tests */
-        stage('Run Tests') {
-            parallel {
-                stage('Client Tests') {
-                    steps {
-                        dir('client') {
-                            script {
-                                sh 'npm test || echo "Aucun test client configuré"'
-                            }
-                        }
-                    }
-                }
-                stage('Server Tests') {
-                    steps {
-                        dir('server') {
-                            script {
-                                sh 'npm test || echo "Aucun test serveur configuré"'
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* Analyse SonarQube */
-        stage('Analyse SonarQube') {
-            when {
-                expression { return env.SONAR_HOST_URL != null }
-            }
+        /* Étape 1: Installation des dépendances du client */
+        stage('Install Client Dependencies') {
             steps {
-                withSonarQubeEnv('scanner') {
+                dir('client') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        /* Étape 2: Installation des dépendances du serveur */
+        stage('Install Server Dependencies') {
+            steps {
+                dir('server') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        /* Étape 3: Tests du client (optionnel) */
+        stage('Client Tests') {
+            steps {
+                dir('client') {
                     script {
-                        try {
-                            sh """
-                                ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONAR_AUTH_TOKEN} \
-                                -Dsonar.sources=${SONAR_SOURCES} \
-                                -Dsonar.javascript.node=18
-                            """
-                        } catch (err) {
-                            echo "Erreur SonarQube: ${err}"
-                            // Ne pas faire échouer le pipeline pour cette étape
-                        }
+                        // Continue même si les tests échouent ou sont absents
+                        sh 'npm test || echo "Aucun test client configuré"'
                     }
                 }
             }
         }
 
-        /* Build Client */
+        /* Étape 4: Tests du serveur (optionnel) */
+        stage('Server Tests') {
+            steps {
+                dir('server') {
+                    script {
+                        // Continue même si les tests échouent ou sont absents
+                        sh 'npm test || echo "Aucun test serveur configuré"'
+                    }
+                }
+            }
+        }
+
+stage('SonarQube Analysis') {
+      steps{
+      script {  
+                    def scannerHome = tool 'scanner'
+                    withSonarQubeEnv {
+                    sh "${scannerHome}/bin/sonar-scanner"
+                        }
+                } 
+              }  
+            }
+
+        /* Étape 5: Build du client */
         stage('Build Client') {
             steps {
                 dir('client') {
-                    sh 'npm run build'
-                    archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+                    sh 'npm run build'  // Assurez-vous que ce script existe dans package.json
                 }
             }
         }
+
+      
     }
     post {
         always {
-            echo 'Nettoyage terminé'
+            echo 'Pipeline terminée - Nettoyage'
         }
         success {
-            echo '✅ Pipeline réussie'
+            echo 'SUCCÈS : Le déploiement a réussi!'
         }
         failure {
-            echo '❌ Pipeline échouée'
+            echo 'ÉCHEC : Vérifiez les logs pour diagnostiquer le problème'
         }
     }
 }
