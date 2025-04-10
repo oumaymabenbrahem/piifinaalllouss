@@ -48,22 +48,23 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'scanner' // Doit être défini dans Jenkins > Global Tools
-                    withSonarQubeEnv("${SONARQUBE_CREDENTIALS_ID}") {
-                        sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=devops \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=${SONARQUBE_URL} \
-                          -Dsonar.login=$SONAR_AUTH_TOKEN
-                        """
-                    }
-                }
+      stage('SonarQube Analysis') {
+    steps {
+        script {
+            def scannerHome = tool 'scanner'
+            withSonarQubeEnv('sonar') { 
+                sh """
+                    ${scannerHome}/bin/sonar-scanner \
+                      -Dsonar.projectKey=piapp \
+                      -Dsonar.sources=. \
+                      -Dsonar.host.url=$SONARQUBE_URL \
+                      -Dsonar.login=$SONAR_AUTH_TOKEN
+                """
             }
         }
+    }
+}
+
 
         stage('Build Client') {
             steps {
