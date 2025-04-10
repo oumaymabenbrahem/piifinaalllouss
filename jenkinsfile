@@ -6,7 +6,6 @@ pipeline {
         }
     }
     environment {
-        
         SONAR_SCANNER_HOME = tool 'scanner' 
         SONAR_PROJECT_KEY = 'piapp'
         SONAR_PROJECT_NAME = 'Mon Projet' 
@@ -57,10 +56,9 @@ pipeline {
             }
         }
 
-        stages {
+        /* Analyse SonarQube */
         stage('Analyse SonarQube') {
             steps {
-                // 4. Nom doit matcher "Nom" dans Configure System
                 withSonarQubeEnv('scanner') {  
                     sh """
                         ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
