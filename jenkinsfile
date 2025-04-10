@@ -2,16 +2,16 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root'  
+            args '-u root'
         }
- environment {
+    }
+
+    environment {
         SONARQUBE_CREDENTIALS_ID = "sonar"
         SONARQUBE_URL = "http://192.168.33.10:9000"
-      
     }
-    }
+
     stages {
-        /* Étape 1: Installation des dépendances du client */
         stage('Install Client Dependencies') {
             steps {
                 dir('client') {
@@ -20,7 +20,6 @@ pipeline {
             }
         }
 
-        /* Étape 2: Installation des dépendances du serveur */
         stage('Install Server Dependencies') {
             steps {
                 dir('server') {
@@ -29,78 +28,61 @@ pipeline {
             }
         }
 
-        /* Étape 3: Tests du client (optionnel) */
         stage('Client Tests') {
             steps {
                 dir('client') {
                     script {
-                        // Continue même si les tests échouent ou sont absents
                         sh 'npm test || echo "Aucun test client configuré"'
                     }
                 }
             }
         }
 
-        /* Étape 4: Tests du serveur (optionnel) */
         stage('Server Tests') {
             steps {
                 dir('server') {
                     script {
-                        // Continue même si les tests échouent ou sont absents
                         sh 'npm test || echo "Aucun test serveur configuré"'
                     }
                 }
             }
         }
 
-stage('SonarQube Analysis') {
-      steps{
-      script {  
-                    def scannerHome = tool 'scanner'
-                    withSonarQubeEnv {
-                    sh "${scannerHome}/bin/sonar-scanner"
-                        }
-                } 
-              }  
-            }
-
-
-stage("SonarQube Analysis") {
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
+                    def scannerHome = tool 'scanner' // Doit être défini dans Jenkins > Global Tools
+                    withSonarQubeEnv("${SONARQUBE_CREDENTIALS_ID}") {
                         sh """
-                        mvn sonar:sonar \
-                            -Dsonar.projectKey=devops \
-                            -Dsonar.host.url=${SONARQUBE_URL} \
-                            -Dsonar.login=$SONAR_TOKEN \
-                            --settings settings.xml
+                        ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=devops \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=${SONARQUBE_URL} \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
                         """
                     }
                 }
             }
         }
 
-        /* Étape 5: Build du client */
         stage('Build Client') {
             steps {
                 dir('client') {
-                    sh 'npm run build'  // Assurez-vous que ce script existe dans package.json
+                    sh 'npm run build'
                 }
             }
         }
-
-      
     }
+
     post {
         always {
             echo 'Pipeline terminée - Nettoyage'
         }
         success {
-            echo 'SUCCÈS : Le déploiement a réussi!'
+            echo '✅ SUCCÈS : Le déploiement a réussi!'
         }
         failure {
-            echo 'ÉCHEC : Vérifiez les logs pour diagnostiquer le problème'
+            echo '❌ ÉCHEC : Vérifiez les logs pour diagnostiquer le problème'
         }
     }
 }
