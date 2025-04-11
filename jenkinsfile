@@ -76,17 +76,11 @@ pipeline {
                 docker {
                     image 'docker:latest'
                     args '-v /var/run/docker.sock:/var/run/docker.sock -w /workspace'
-                    // On retire le montage en double de $WORKSPACE
-                    // Jenkins monte automatiquement le workspace dans /workspace
                 }
             }
             steps {
                 script {
-                    // Solution plus robuste avec docker-compose v2
-                    sh '''
-                        docker compose version
-                        docker compose build
-                    '''
+                    sh 'docker compose build'
                 }
             }
         }
@@ -94,7 +88,8 @@ pipeline {
 
     post {
         always {
-            node { // Ajout d'un contexte node pour les post-actions
+            // Modification ici: soit spécifier un label, soit utiliser 'any'
+            node('any') {
                 echo 'Pipeline terminée - Nettoyage'
                 script {
                     // Clean up any dangling Docker resources
