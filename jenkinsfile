@@ -56,6 +56,17 @@ pipeline {
                 }
             }
         }
+stage('SonarQube Analysis') {
+    steps {
+        script {
+            def scannerHome = tool name: 'sonar', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+            withSonarQubeEnv('sonar') {
+                sh "${scannerHome}/bin/sonar-scanner"
+            }
+        }
+    }
+}
+
 
         stage('Build Client') {
             agent {
@@ -71,7 +82,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
+       /* stage('Build Docker Images') {
             agent {
                 docker {
                     image 'docker:latest'
@@ -83,7 +94,7 @@ pipeline {
                     sh 'docker compose build'
                 }
             }
-        }
+        }*/
     }
 
     post {
