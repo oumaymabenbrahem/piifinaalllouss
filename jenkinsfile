@@ -1,61 +1,53 @@
 pipeline {
-    agent none // Set to none since we'll define agents per stage
-    
+    agent {
+        docker {
+            image 'node:18'
+            args '-u root'  // Évite les problèmes de permissions
+        }
+    }
     stages {
-        // Node.js stages run in node:18 container
-        stage('Install Dependencies') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root'
+        /* Étape 1: Installation des dépendances du client */
+        stage('Install Client Dependencies') {
+            steps {
+                dir('client') {
+                    sh 'npm install'
                 }
             }
-            stages {
-                stage('Install Client Dependencies') {
-                    steps {
-                        dir('client') {
-                            sh 'npm install'
-                        }
-                    }
+        }
+
+        /* Étape 2: Installation des dépendances du serveur */
+        stage('Install Server Dependencies') {
+            steps {
+                dir('server') {
+                    sh 'npm install'
                 }
-                stage('Install Server Dependencies') {
-                    steps {
-                        dir('server') {
-                            sh 'npm install'
-                        }
+            }
+        }
+
+        /* Étape 3: Tests du client (optionnel) */
+        stage('Client Tests') {
+            steps {
+                dir('client') {
+                    script {
+                        // Continue même si les tests échouent ou sont absents
+                        sh 'npm test || echo "Aucun test client configuré"'
                     }
                 }
             }
         }
 
-        stage('Run Tests') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root'
-                }
-            }
-            stages {
-                stage('Client Tests') {
-                    steps {
-                        dir('client') {
-                            script {
-                                sh 'npm test || echo "Aucun test client configuré"'
-                            }
-                        }
-                    }
-                }
-                stage('Server Tests') {
-                    steps {
-                        dir('server') {
-                            script {
-                                sh 'npm test || echo "Aucun test serveur configuré"'
-                            }
-                        }
+        /* Étape 4: Tests du serveur (optionnel) */
+        stage('Server Tests') {
+            steps {
+                dir('server') {
+                    script {
+                        // Continue même si les tests échouent ou sont absents
+                        sh 'npm test || echo "Aucun test serveur configuré"'
                     }
                 }
             }
         }
+
 stage('SonarQube Analysis') {
     steps {
         script {
@@ -68,51 +60,26 @@ stage('SonarQube Analysis') {
 }
 
 
+        /* Étape 5: Build du client */
         stage('Build Client') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root'
-                }
-            }
             steps {
                 dir('client') {
-                    sh 'npm run build'
+                    sh 'npm run build'  // Assurez-vous que ce script existe dans package.json
                 }
             }
         }
 
-       /* stage('Build Docker Images') {
-            agent {
-                docker {
-                    image 'docker:latest'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -w /workspace'
-                }
-            }
-            steps {
-                script {
-                    sh 'docker compose build'
-                }
-            }
-        }*/
+      
     }
-
     post {
         always {
-            // Modification ici: soit spécifier un label, soit utiliser 'any'
-            node('any') {
-                echo 'Pipeline terminée - Nettoyage'
-                script {
-                    // Clean up any dangling Docker resources
-                    sh 'docker system prune -f || true'
-                }
-            }
+            echo 'Pipeline terminée - Nettoyage'
         }
         success {
-            echo '✅ SUCCÈS : Le déploiement a réussi!'
+            echo 'SUCCÈS : Le déploiement a réussi!'
         }
         failure {
-            echo '❌ ÉCHEC : Vérifiez les logs pour diagnostiquer le problème'
+            echo 'ÉCHEC : Vérifiez les logs pour diagnostiquer le problème'
         }
     }
 }
