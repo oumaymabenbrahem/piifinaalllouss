@@ -57,17 +57,14 @@ stage("SonarQube Analysis") {
     steps {
         script {
             withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
-                sh """
-                apt-get update && apt-get install -y maven
-                mvn sonar:sonar \
-                    -Dsonar.projectKey=piapp \
-                    -Dsonar.host.url=${SONARQUBE_URL} \
-                    -Dsonar.login=$SONAR_TOKEN
-                """
+                dir('server') {  // Assurez-vous que le répertoire est correct
+                    sh "sonar-scanner -Dsonar.projectKey=piapp -Dsonar.sources=client,server -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=$SONAR_TOKEN"
+                }
             }
         }
     }
 }
+
 
 
 
