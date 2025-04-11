@@ -53,17 +53,27 @@ pipeline {
             }
         }
 
-stage("SonarQube Analysis") {
-    steps {
-        script {
-            withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
-                dir('server') {  // Assurez-vous que le répertoire est correct
-                    sh "sonar-scanner -Dsonar.projectKey=piapp -Dsonar.sources=client,server -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=$SONAR_TOKEN"
+stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
+                        dir('server') {  // Assurez-vous que le répertoire est correct
+                            // Installer SonarQube Scanner globalement
+                            sh 'npm install -g sonarqube-scanner'
+                            
+                            // Exécuter l'analyse SonarQube
+                            sh """
+                            sonar-scanner -Dsonar.projectKey=piapp \
+                                -Dsonar.sources=client,server \
+                                -Dsonar.host.url=${SONARQUBE_URL} \
+                                -Dsonar.login=$SONAR_TOKEN
+                            """
+                        }
+                    }
                 }
             }
         }
-    }
-}
+
 
 
 
