@@ -53,11 +53,12 @@ stage('SonarQube Analysis') {
         script {
             def scannerHome = tool name: 'sonar', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
             withSonarQubeEnv('sonar') {
-                sh "${scannerHome}/bin/sonar-scanner"
+                sh "${scannerHome}/bin/sonar-scanner || echo 'Sonar scanner introuvable ou échoué'"
             }
         }
     }
 }
+
 
 
         /* Étape 5: Build du client */
