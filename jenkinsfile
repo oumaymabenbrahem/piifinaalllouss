@@ -5,6 +5,11 @@ pipeline {
             args '-u root'  // Évite les problèmes de permissions
         }
     }
+  environment {
+        SONARQUBE_CREDENTIALS_ID = "sonar" 
+        SONARQUBE_URL = "http://192.168.33.10:9000"
+  
+    }
     stages {
         /* Étape 1: Installation des dépendances du client */
         stage('Install Client Dependencies') {
@@ -48,16 +53,21 @@ pipeline {
             }
         }
 
-stage('SonarQube Analysis') {
-    steps {
-        script {
-            def scannerHome = tool name: 'sonar', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-            withSonarQubeEnv('sonar') {
-                sh "${scannerHome}/bin/sonar-scanner || echo 'Sonar scanner introuvable ou échoué'"
+stage("SonarQube Analysis") {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
+                        sh """
+                        mvn sonar:sonar \
+                            -Dsonar.projectKey=piapp \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.login=$SONAR_TOKEN
+                        """
+                    }
+                }
             }
         }
-    }
-}
+
 
 
 
