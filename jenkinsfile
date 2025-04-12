@@ -90,23 +90,9 @@ pipeline {
             }
         }
   /* Étape 6: Building images (node et mongo) */
-        stage('Building images (node and mongo)') {
+      stage('Building images (node and mongo)') {
             steps {
                 script {
-                    // Installer jq si nécessaire
-                    sh 'apt-get update && apt-get install -y jq'
-
-                    // Télécharger Docker Compose avec la version correcte
-                    sh '''
-                        VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
-                        curl -L "https://github.com/docker/compose/releases/download/$VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-                        chmod +x /usr/local/bin/docker-compose
-                    '''
-                    
-                    // Vérifier l'installation de Docker Compose
-                    sh 'docker-compose --version'
-                    
-                    // Exécuter docker-compose build
                     sh 'docker-compose build'
                 }
             }
