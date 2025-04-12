@@ -100,15 +100,39 @@ sh 'docker --version'
         }
     }
 }*/
-
-
-        stage('Publish to Nexus') {
-            steps {
-                script {
-                    sh 'mvn deploy -DaltDeploymentRepository=deploymentRepo::default::http://192.168.33.10:8081/repository/docker-repo/'
-                }
+stage('Building images') {
+    steps {
+        script {
+            // Construction de l'image Docker pour le client
+           // dir('client') {
+               // sh 'docker build -t clientapp:5.0 .'
+           // }
+            
+            // Construction de l'image Docker pour le serveur
+            dir('server') {
+                sh 'docker build -t serverapp:5.0 .'
             }
         }
+    }
+}
+
+
+       stage('Deploy to Nexus') {
+    steps {
+        script {
+            // Pousser l'image Docker du client vers Nexus
+           // docker.withRegistry("http://"+registry, registryCredentials) { 
+             //   sh 'docker push $registry/clientapp:5.0'
+           // }
+            
+            // Pousser l'image Docker du serveur vers Nexus
+            docker.withRegistry("http://"+registry, registryCredentials) { 
+                sh 'docker push $registry/serverapp:5.0'
+            }
+        }
+    }
+}
+
 
 
 
