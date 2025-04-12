@@ -103,24 +103,28 @@ sh 'docker --version'
 stage('Building images') {
     steps {
         script {
-sh """
-                    apt-get update
-                    apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-                    curl -fsSL https://get.docker.com -o get-docker.sh
-                    sh get-docker.sh
-                    """
-            // Construction de l'image Docker pour le client
-           // dir('client') {
-               // sh 'docker build -t clientapp:5.0 .'
-           // }
+            // Update and install necessary packages
+            sh """
+                apt-get update
+                apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+                curl -fsSL https://get.docker.com -o get-docker.sh
+                sh get-docker.sh
+                usermod -aG docker \$USER  // Optional: add the user to the Docker group
+            """
             
-            // Construction de l'image Docker pour le serveur
+            // Uncomment below for client image build
+            // dir('client') {
+            //     sh 'docker build -t clientapp:5.0 .'
+            // }
+            
+            // Build the server image
             dir('server') {
                 sh 'docker build -t serverapp:5.0 .'
             }
         }
     }
 }
+
 
 
        stage('Deploy to Nexus') {
