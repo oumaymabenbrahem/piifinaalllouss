@@ -93,10 +93,12 @@ stage('SonarQube Analysis') {
    stage('Building images (node and mongo)') {
     steps {
         script {
-            sh '/usr/local/bin/docker-compose build'
+sh 'docker --version'
+            sh 'export PATH=$PATH:/usr/local/bin && /usr/local/bin/docker-compose build'
         }
     }
 }
+
 
 
     
