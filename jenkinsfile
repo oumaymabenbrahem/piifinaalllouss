@@ -101,7 +101,7 @@ sh 'docker --version'
     }
 }*/
 
-stages {
+
         stage('Building images') {
             steps {
                 script {
@@ -121,7 +121,7 @@ stages {
             }
         }
 
-}
+
 
     
 
