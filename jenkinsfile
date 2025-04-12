@@ -90,6 +90,14 @@ stage('SonarQube Analysis') {
             }
         }
 
+stage('Building images (node and mongo)') { 
+steps{ 
+script { 
+sh('docker-compose build') 
+} 
+} 
+} 
+
       
     }
     post {
