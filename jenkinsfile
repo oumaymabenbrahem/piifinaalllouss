@@ -102,24 +102,14 @@ sh 'docker --version'
 }*/
 
 
-        stage('Building images') {
+        stage('Publish to Nexus') {
             steps {
                 script {
-                    // Construction de l'image Docker
-                    sh 'docker build -t nodemongoapp:5.0 .'
+                    sh 'mvn deploy -DaltDeploymentRepository=deploymentRepo::default::http://192.168.33.10:8081/repository/docker-repo/'
                 }
             }
         }
 
-        stage('Deploy to Nexus') {
-            steps {
-                script {
-                    // Utilisation de Docker à l'intérieur du conteneur Jenkins pour pousser l'image
-                    sh "docker login -u admin -p ${NEXUS_PASSWORD} http://${registry}"
-                    sh "docker push ${registry}/nodemongoapp:5.0"
-                }
-            }
-        }
 
 
 
