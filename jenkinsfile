@@ -109,7 +109,8 @@ stage('Building images') {
                 apt-get install -y apt-transport-https ca-certificates curl software-properties-common
                 curl -fsSL https://get.docker.com -o get-docker.sh
                 sh get-docker.sh
-                //usermod -aG docker \$USER  // Optional: add the user to the Docker group
+                sudo usermod -aG docker jenkins
+  // Optional: add the user to the Docker group
             """
             
             // Uncomment below for client image build
