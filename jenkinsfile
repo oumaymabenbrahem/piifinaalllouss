@@ -95,7 +95,7 @@ stage('SonarQube Analysis') {
   steps {
     script {
 sh 'which docker-compose'
-                sh 'docker-compose --version
+                sh 'docker-compose --version'
       sh 'docker-compose build'
     }
   }
