@@ -94,6 +94,8 @@ stage('SonarQube Analysis') {
  stage('Building images (node and mongo)') {
   steps {
     script {
+sh 'which docker-compose'
+                sh 'docker-compose --version
       sh 'docker-compose build'
     }
   }
