@@ -91,18 +91,19 @@ stage('SonarQube Analysis') {
                 }
             }
         }
- stage('Building images (node and mongo)') {
+stage('Building images (node and mongo)') {
   steps {
     script {
-withEnv(['PATH+DOCKER_COMPOSE=/usr/local/bin']) {
-    sh 'which docker-compose'
-    sh 'docker-compose --version'
-    sh 'docker-compose build'
-}
-
+      sh 'ls -l /usr/local/bin'
+      withEnv(['PATH+DOCKER_COMPOSE=/usr/local/bin']) {
+        sh 'which docker-compose'
+        sh 'docker-compose --version'
+        sh 'docker-compose build'
+      }
     }
   }
 }
+
 
 /*stage('Building images') {
     steps {
