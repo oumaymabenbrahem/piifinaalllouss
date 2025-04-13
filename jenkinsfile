@@ -91,16 +91,15 @@ stage('SonarQube Analysis') {
                 }
             }
         }
-  /* Étape 6: Building images (node et mongo) */
-  /* stage('Building images (node and mongo)') {
-    steps {
-        script {
-sh 'docker --version'
-            sh 'export PATH=$PATH:/usr/local/bin && /usr/local/bin/docker-compose build'
-        }
+ stage('Building images (node and mongo)') {
+  steps {
+    script {
+      sh 'docker-compose build'
     }
-}*/
-stage('Building images') {
+  }
+}
+
+/*stage('Building images') {
     steps {
         script {
             // Update and install necessary packages
@@ -125,7 +124,7 @@ stage('Building images') {
             }
         }
     }
-}
+}*/
 
 
 
