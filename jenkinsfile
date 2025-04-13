@@ -94,15 +94,22 @@ stage('SonarQube Analysis') {
 stage('Building images (node and mongo)') {
   steps {
     script {
-      sh 'ls -l /usr/local/bin'
-      withEnv(['PATH+DOCKER_COMPOSE=/usr/local/bin']) {
-        sh 'which docker-compose'
-        sh 'docker-compose --version'
-        sh 'docker-compose build'
-      }
+      // Installer Docker Compose
+      sh '''
+        sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+      '''
+
+      // Vérifier la version de docker-compose
+      sh 'docker-compose --version'
+      
+      // Construire les images avec docker-compose
+      sh 'docker-compose build'
     }
   }
 }
+
 
 
 /*stage('Building images') {
