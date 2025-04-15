@@ -11,7 +11,7 @@ services:
     depends_on:
       - mongo
     environment:
-      - MONGO_URI=mongodb://mongo:27017/myappdb 
+      - MONGO_URI=mongodb://mongo:27017/your_database_name 
     restart: unless-stopped
 
   mongo:
