@@ -2,16 +2,17 @@ pipeline {
     agent {
         docker {
             image 'node:18'
-            args '-u root'  // Évite les problèmes de permissions
+            args '-u root' // Évite les problèmes de permissions
         }
     }
-  environment {
+
+    environment {
         SONARQUBE_CREDENTIALS_ID = "scanner" 
         SONARQUBE_URL = "http://192.168.33.10:9000"
-registryCredentials = "nexus" 
-registry = "192.168.33.10:8083" 
-  
+        registryCredentials = "nexus" 
+        registry = "192.168.33.10:8083" 
     }
+
     stages {
         /* Étape 1: Installation des dépendances du client */
         stage('Install Client Dependencies') {
@@ -31,144 +32,65 @@ registry = "192.168.33.10:8083"
             }
         }
 
-        /* Étape 3: Tests du client (optionnel) */
+        /* Étape 3: Tests du client */
         stage('Client Tests') {
             steps {
                 dir('client') {
                     script {
-                        // Continue même si les tests échouent ou sont absents
                         sh 'npm test || echo "Aucun test client configuré"'
                     }
                 }
             }
         }
 
-        /* Étape 4: Tests du serveur (optionnel) */
+        /* Étape 4: Tests du serveur */
         stage('Server Tests') {
             steps {
                 dir('server') {
                     script {
-                        // Continue même si les tests échouent ou sont absents
                         sh 'npm test || echo "Aucun test serveur configuré"'
                     }
                 }
             }
         }
 
-stage('SonarQube Analysis') {
-    steps {
-        script {
-            withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
-                dir('.') {  // Point d'entrée, le répertoire racine du projet
-                    // Installer SonarQube Scanner globalement
-                    sh 'npm install -g sonarqube-scanner'
-
-                    // Exécuter l'analyse SonarQube pour les dossiers client et server
-                    sh """
-                    sonar-scanner -Dsonar.projectKey=piapp \
-                        -Dsonar.sources=client,server \
-                        -Dsonar.host.url=${SONARQUBE_URL} \
-                        -Dsonar.login=$SONAR_TOKEN
-                    """
+        /* Étape 5: Analyse SonarQube */
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "${SONARQUBE_CREDENTIALS_ID}", variable: "SONAR_TOKEN")]) {
+                        dir('.') {
+                            sh 'npm install -g sonarqube-scanner'
+                            sh """
+                                sonar-scanner \
+                                    -Dsonar.projectKey=piapp \
+                                    -Dsonar.sources=client,server \
+                                    -Dsonar.host.url=${SONARQUBE_URL} \
+                                    -Dsonar.login=$SONAR_TOKEN
+                            """
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-
-
-
-
-
-
-
-        /* Étape 5: Build du client */
+        /* Étape 6: Build du client */
         stage('Build Client') {
             steps {
                 dir('client') {
-                    sh 'npm run build'  // Assurez-vous que ce script existe dans package.json
+                    sh 'npm run build'
                 }
             }
         }
-stage('Building images (node and mongo)') {
-  steps {
-    script {
-      // Installer Docker Compose sans sudo
-      sh '''
-        curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-        ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-      '''
 
-      // Vérifier la version de docker-compose
-      sh 'docker-compose --version'
-      
-      // Construire les images avec docker-compose
-      sh 'docker-compose build'
-    }
-  }
-}
-
-
-
-
-/*stage('Building images') {
-    steps {
-        script {
-            // Update and install necessary packages
-            sh """
-                apt-get update
-                apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-                curl -fsSL https://get.docker.com -o get-docker.sh
-                sh get-docker.sh
-                usermod -aG docker jenkins
-
-  // Optional: add the user to the Docker group
-            """
-            
-            // Uncomment below for client image build
-            // dir('client') {
-            //     sh 'docker build -t clientapp:5.0 .'
-            // }
-            
-            // Build the server image
-            dir('server') {
-                sh 'docker build -t serverapp:5.0 .'
+        /* Étape 7: Démarrage des services via Docker Compose */
+        stage('Building images (node and mongo)') {
+            steps {
+                sh 'docker compose up -d'
             }
         }
     }
-}*/
 
-
-
-       stage('Deploy to Nexus') {
-    steps {
-        script {
-            // Pousser l'image Docker du client vers Nexus
-           // docker.withRegistry("http://"+registry, registryCredentials) { 
-             //   sh 'docker push $registry/clientapp:5.0'
-           // }
-            
-            // Pousser l'image Docker du serveur vers Nexus
-            docker.withRegistry("http://"+registry, registryCredentials) { 
-                sh 'docker push $registry/serverapp:5.0'
-            }
-        }
-    }
-}
-
-
-
-
-
-    
-
-
-} 
-
-      
-    
     post {
         always {
             echo 'Pipeline terminée - Nettoyage'
