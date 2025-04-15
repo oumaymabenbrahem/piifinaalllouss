@@ -86,7 +86,7 @@ pipeline {
 
         stage('Building images (node and mongo)') {
             steps {
-                sh 'docker compose up -d'
+                sh 'docker-compose up -d'
             }
         }
     }
