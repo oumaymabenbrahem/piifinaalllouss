@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'node:18'
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock -u root'  // Assure que Docker est accessible et que l'agent a les bonnes permissions
+        }
+    }
 
     environment {
         SONARQUBE_CREDENTIALS_ID = "scanner" 
