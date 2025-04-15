@@ -1,11 +1,19 @@
 pipeline {
-    agent {
+   agent {
         docker {
             image 'node:18'
-            image 'docker:20'
-            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock -u root'  // Assure que Docker est accessible et que l'agent a les bonnes permissions
+            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock -u root'
         }
     }
+    stages {
+        stage('Install Docker') {
+            steps {
+                sh '''
+                apt-get update
+                apt-get install -y docker.io
+                '''
+            }
+        }
 
     environment {
         SONARQUBE_CREDENTIALS_ID = "scanner" 
